@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyMate</title>
+<style>
+  :root {
+    --bg:#0a0d14; --panel:rgba(20,25,36,.78); --panel-solid:#141924; --line:rgba(120,140,180,.18);
+    --text:#e8ecf4; --dim:#8b96ab; --faint:#5d6880;
+    --orch:#6ea8ff; --res:#ffc857; --coach:#4ade80; --err:#ff6b7a;
+    --radius:14px;
+  }
+  * { box-sizing:border-box; }
+  html { font-size:16px; }
+  body {
+    margin:0; height:100vh; display:flex; flex-direction:column; color:var(--text);
+    font:1rem/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(900px 500px at 8% -10%, rgba(110,168,255,.16), transparent 60%),
+      radial-gradient(800px 500px at 100% 110%, rgba(167,139,250,.13), transparent 60%),
+      var(--bg);
+  }
+  header { display:flex; align-items:center; gap:.9rem; padding:.8rem 1.4rem; border-bottom:1px solid var(--line); backdrop-filter:blur(8px); }
+  .logo { width:2.3rem; height:2.3rem; border-radius:.7rem; display:grid; place-items:center; font-weight:800; color:#06101f;
+          background:linear-gradient(135deg,#6ea8ff,#a78bfa); box-shadow:0 4px 18px rgba(110,168,255,.35); }
+  header h1 { margin:0; font-size:1.3rem; letter-spacing:.2px; }
+  header .tag { color:var(--dim); font-size:.85rem; }
+  .legend { margin-left:auto; display:flex; gap:.5rem; flex-wrap:wrap; }
+  .chip { display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .65rem; border-radius:99px; font-size:.78rem; color:var(--dim);
+          border:1px solid var(--line); background:rgba(255,255,255,.03); }
+  .dot { width:.55rem; height:.55rem; border-radius:50%; background:var(--c, var(--dim)); box-shadow:0 0 8px var(--c, transparent); }
+  .status { font-size:.8rem; padding:.25rem .8rem; border-radius:99px; border:1px solid var(--line); color:var(--dim); min-width:6.2rem; text-align:center; }
+  .status.busy { color:var(--orch); border-color:rgba(110,168,255,.5); animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 0 .35rem rgba(110,168,255,.08); } }
+
+  main { flex:1; display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:1rem; padding:1rem 1.4rem 1.2rem; min-height:0; }
+  @media (max-width: 860px) { main { grid-template-columns:1fr; grid-template-rows:1fr 1fr; } .legend { display:none; } }
+  section { display:flex; flex-direction:column; min-height:0; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+  section > h2 { margin:0; padding:.65rem 1rem; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); border-bottom:1px solid var(--line);
+                 display:flex; justify-content:space-between; align-items:center; }
+  section > h2 span { letter-spacing:0; text-transform:none; color:var(--faint); font-size:.75rem; }
+  .scroll { flex:1; overflow:auto; padding:1rem; scroll-behavior:smooth; }
+  .scroll::-webkit-scrollbar { width:8px; } .scroll::-webkit-scrollbar-thumb { background:#2a3347; border-radius:8px; }
+
+  /* conversation */
+  .empty { height:100%; display:flex; flex-direction:column; justify-content:center; gap:.7rem; color:var(--dim); }
+  .empty h3 { margin:0 0 .2rem; color:var(--text); font-size:1.25rem; }
+  .sugg { text-align:left; cursor:pointer; padding:.7rem .9rem; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.025); color:var(--text);
+          font:inherit; font-size:.9rem; transition:.18s; }
+  .sugg:hover { border-color:rgba(110,168,255,.55); background:rgba(110,168,255,.08); transform:translateY(-1px); }
+  .sugg b { display:block; font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--orch); margin-bottom:.15rem; }
+  .bubble { margin-bottom:1rem; animation:rise .3s ease both; }
+  .bubble.user { margin-left:12%; padding:.65rem .95rem; border-radius:14px 14px 4px 14px; background:linear-gradient(135deg,#3b6fe0,#6d5be0); color:#fff; font-size:.95rem; }
+  .bubble.bot { padding:.2rem .1rem; }
+  .bubble.bot .who { font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--orch); margin-bottom:.3rem; font-weight:600; }
+  .bubble.err { padding:.7rem .9rem; border:1px solid rgba(255,107,122,.5); border-radius:12px; background:rgba(255,107,122,.08); color:#ffc2c8; font-size:.9rem; }
+  .typing { display:inline-flex; gap:.3rem; padding:.3rem 0; } .typing i { width:.45rem; height:.45rem; border-radius:50%; background:var(--orch); animation:blink 1.2s infinite; }
+  .typing i:nth-child(2){animation-delay:.2s} .typing i:nth-child(3){animation-delay:.4s} @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+  .md h1,.md h2,.md h3,.md h4 { margin:1rem 0 .4rem; line-height:1.25; } .md h1{font-size:1.3rem} .md h2{font-size:1.15rem;color:#cfe0ff} .md h3{font-size:1.02rem;color:#cfe0ff} .md h4{font-size:.95rem}
+  .md p { margin:.45rem 0; } .md ul,.md ol { margin:.4rem 0; padding-left:1.4rem; } .md li { margin:.2rem 0; }
+  .md code { font:.84rem Consolas, monospace; background:rgba(255,255,255,.08); padding:.08rem .35rem; border-radius:5px; }
+  .md pre { background:#0c1019; border:1px solid var(--line); border-radius:10px; padding:.7rem .9rem; overflow:auto; } .md pre code { background:none; padding:0; }
+  .md hr { border:0; border-top:1px solid var(--line); margin:.9rem 0; } .md a { color:var(--orch); }
+  .md table { border-collapse:collapse; margin:.6rem 0; font-size:.88rem; } .md th,.md td { border:1px solid var(--line); padding:.3rem .6rem; text-align:left; } .md th { background:rgba(255,255,255,.05); }
+
+  form { display:flex; gap:.6rem; padding:.8rem; border-top:1px solid var(--line); background:rgba(10,13,20,.6); }
+  input { flex:1; min-width:0; padding:.7rem .95rem; border-radius:12px; border:1px solid var(--line); background:#0c1019; color:var(--text); font:inherit; font-size:.95rem; outline:none; transition:.15s; }
+  input:focus { border-color:rgba(110,168,255,.7); box-shadow:0 0 0 3px rgba(110,168,255,.15); }
+  button.send { padding:.7rem 1.3rem; border-radius:12px; border:0; color:#06101f; font:inherit; font-weight:700; cursor:pointer; background:linear-gradient(135deg,#6ea8ff,#8fb8ff); transition:.15s; }
+  button.send:hover:not(:disabled) { filter:brightness(1.1); transform:translateY(-1px); } button.send:disabled { opacity:.45; cursor:wait; }
+
+  /* trace timeline */
+  .trace { font:.82rem/1.5 Consolas, "Cascadia Mono", monospace; }
+  .trace .hint { color:var(--faint); font-family:inherit; padding:.3rem .2rem; }
+  .ev { margin:.15rem 0; padding-left:calc(var(--d,0) * 1.4rem); animation:rise .28s ease both; }
+  .ev .row { border-left:3px solid var(--c); padding:.05rem 0 .05rem .65rem; }
+  .ev.step .row { color:var(--faint); font-size:.74rem; padding-top:.25rem; }
+  .ev.step .row b { color:var(--c); font-weight:600; }
+  .badge { display:inline-block; padding:.02rem .5rem; margin-right:.45rem; border-radius:99px; font-size:.7rem; font-weight:700; color:#07101e; background:var(--c); }
+  .ev.call .name { color:var(--text); font-weight:700; } .ev.call .args { color:var(--dim); }
+  .ev.res .row { color:#7fe0a8; margin-left:.2rem; } .ev.res.bad .row { color:var(--err); } .ev.res .txt { color:var(--dim); }
+  .ev.final .row { color:var(--c); font-weight:700; }
+  button.ghost { font:inherit; font-size:.82rem; color:var(--text); cursor:pointer; padding:.3rem .85rem; border-radius:99px; border:1px solid var(--line); background:rgba(255,255,255,.04); transition:.15s; }
+  button.ghost:hover { border-color:rgba(110,168,255,.6); background:rgba(110,168,255,.1); }
+  .modal { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; background:rgba(5,8,14,.72); backdrop-filter:blur(6px); }
+  .modal.open { display:flex; animation:rise .22s ease both; }
+  .sheet { width:min(62rem,92vw); height:min(40rem,82vh); display:flex; flex-direction:column; background:var(--panel-solid); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 30px 80px rgba(0,0,0,.55); overflow:hidden; }
+  .mhead { display:flex; justify-content:space-between; align-items:center; padding:.7rem 1rem; border-bottom:1px solid var(--line); font-weight:600; }
+  .mbody { flex:1; display:grid; grid-template-columns:13rem 1fr; min-height:0; }
+  .nlist { list-style:none; margin:0; padding:.6rem; border-right:1px solid var(--line); overflow:auto; }
+  .nlist li { padding:.5rem .7rem; border-radius:10px; cursor:pointer; color:var(--dim); font-size:.9rem; transition:.15s; }
+  .nlist li:hover { background:rgba(255,255,255,.05); color:var(--text); } .nlist li.on { background:rgba(110,168,255,.14); color:var(--text); }
+  .nview { padding:1rem 1.4rem; overflow:auto; }
+  @keyframes rise { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">S</div>
+  <div><h1>StudyMate</h1><div class="tag">Multi-agent study &amp; research assistant</div></div>
+  <div class="legend">
+    <span class="chip"><i class="dot" style="--c:var(--orch)"></i>Orchestrator</span>
+    <span class="chip"><i class="dot" style="--c:var(--res)"></i>Researcher</span>
+    <span class="chip"><i class="dot" style="--c:var(--coach)"></i>Study Coach</span>
+  </div>
+  <button class="ghost" id="notesBtn" title="Notes saved by the Study Coach">📝 Notes</button>
+  <div class="status" id="status">Ready</div>
+</header>
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="mhead"><span>Saved notes</span><button class="ghost" id="closeModal">Close ✕</button></div>
+    <div class="mbody"><ul class="nlist" id="noteList"></ul><div class="nview md" id="noteView"><span style="color:var(--dim)">Select a note to read it.</span></div></div>
+  </div>
+</div>
+<main>
+  <section>
+    <h2>Conversation</h2>
+    <div class="scroll" id="chat">
+      <div class="empty" id="empty">
+        <h3>What are we studying today?</h3>
+        <button class="sugg" data-p="Explain what gradient descent is and give me two reliable sources."><b>Research</b>Explain what gradient descent is and give me two reliable sources.</button>
+        <button class="sugg" data-p='Research how the transformer attention mechanism works, save a short study note called "Attention", then write a 5-question quiz with an answer key based on it.'><b>Multi-step</b>Research attention, save a note, then write a quiz.</button>
+        <button class="sugg" data-p="My exam is on 2026-11-20. I need to cover backpropagation, CNNs, RNNs, transformers and optimisation at 2 hours a day. How many days do I have, and what is my timetable? Save it as a note."><b>Planning</b>Build me an exam timetable and save it as a note.</button>
+      </div>
+    </div>
+    <form id="form"><input id="input" placeholder="Ask StudyMate to research, summarise, quiz or plan..." autocomplete="off" autofocus><button class="send" id="send">Send</button></form>
+  </section>
+  <section>
+    <h2>Tool-call trace <span id="count"></span></h2>
+    <div class="scroll trace" id="trace"><div class="hint">Every agent step and tool call appears here, live, as it happens.</div></div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const chat = $("chat"), traceEl = $("trace"), form = $("form"), input = $("input"), send = $("send"), statusEl = $("status"), countEl = $("count");
+const COLORS = { Orchestrator: "var(--orch)", Researcher: "var(--res)", StudyCoach: "var(--coach)" };
+const LABELS = { StudyCoach: "Study Coach" };
+let sessionId = null, calls = 0;
+
+/* ---- minimal, safe markdown (HTML is escaped first) ---- */
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function inline(s) {
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, "$1<em>$2</em>");
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  return s;
+}
+function md(src) {
+  const lines = src.replace(/\r/g, "").split("\n"), out = [];
+  let i = 0;
+  const isTable = (a, b) => a && b && a.includes("|") && /^\s*\|?[\s:|-]+\|?\s*$/.test(b) && b.includes("-");
+  const cells = l => l.trim().replace(/^\||\|$/g, "").split("|").map(c => inline(c.trim()));
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^```/.test(l)) {
+      const buf = []; i++;
+      while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+      i++; out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>"); continue;
+    }
+    if (/^\s*$/.test(l)) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,4})\s+(.*)$/))) { out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (isTable(l, lines[i + 1])) {
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim()) rows.push(cells(lines[i++]));
+      out.push("<table><thead><tr>" + head.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>" +
+        rows.map(r => "<tr>" + r.map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>"); continue;
+    }
+    if (/^\s*[-*•]\s+/.test(l)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*•]\s+/.test(lines[i])) items.push(inline(lines[i++].replace(/^\s*[-*•]\s+/, "")));
+      out.push("<ul>" + items.map(x => `<li>${x}</li>`).join("") + "</ul>"); continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(l)) {
+      const items = [];
+      while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) items.push(inline(lines[i++].replace(/^\s*\d+[.)]\s+/, "")));
+      out.push("<ol>" + items.map(x => `<li>${x}</li>`).join("") + "</ol>"); continue;
+    }
+    const buf = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|```|\s*[-*•]\s|\s*\d+[.)]\s|\s*(-{3,}|\*{3,})\s*$)/.test(lines[i])) buf.push(lines[i++]);
+    out.push("<p>" + inline(buf.join(" ")) + "</p>");
+  }
+  return out.join("\n");
+}
+
+/* ---- rendering ---- */
+function bubble(cls, html, who) {
+  $("empty")?.remove();
+  const d = document.createElement("div"); d.className = "bubble " + cls;
+  d.innerHTML = (who ? `<div class="who">${who}</div>` : "") + html;
+  chat.append(d); chat.scrollTop = chat.scrollHeight; return d;
+}
+const short = (s, n) => { s = String(s).replace(/\s+/g, " "); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+function addEvent(e) {
+  if (e.type === "done" || e.type === "error") return;
+  const label = LABELS[e.agent] || e.agent;
+  const d = document.createElement("div");
+  d.style.setProperty("--c", COLORS[e.agent] || "var(--dim)"); d.style.setProperty("--d", e.depth || 0);
+  if (e.type === "step") {
+    d.className = "ev step"; d.innerHTML = `<div class="row"><b>${esc(label)}</b> · reasoning step ${e.n}</div>`;
+  } else if (e.type === "tool_call") {
+    d.className = "ev call"; calls++; countEl.textContent = calls + (calls === 1 ? " call" : " calls");
+    d.innerHTML = `<div class="row"><span class="badge">${esc(label)}</span><span class="name">${esc(e.tool)}</span><span class="args">(${esc(short(JSON.stringify(e.args), 150))})</span></div>`;
+  } else if (e.type === "tool_result") {
+    d.className = "ev res" + (e.ok ? "" : " bad");
+    d.innerHTML = `<div class="row">${e.ok ? "← result" : "✗ error"} <span class="txt">${esc(short(e.result, 170))}</span></div>`;
+  } else if (e.type === "final") {
+    d.className = "ev final"; d.innerHTML = `<div class="row">✔ ${esc(label)} finished</div>`;
+  } else return;
+  if (traceEl.querySelector(".hint")) traceEl.textContent = "";
+  traceEl.append(d); traceEl.scrollTop = traceEl.scrollHeight;
+}
+function setBusy(b) { send.disabled = b; statusEl.textContent = b ? "Working…" : "Ready"; statusEl.classList.toggle("busy", b); }
+
+async function ask(message) {
+  bubble("user", esc(message));
+  const typing = bubble("bot", '<span class="typing"><i></i><i></i><i></i></span>', "StudyMate");
+  traceEl.innerHTML = ""; calls = 0; countEl.textContent = ""; setBusy(true);
+  let finished = false;
+  try {
+    const r = await fetch("/chat/stream", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message, session_id: sessionId }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    const reader = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let k; while ((k = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, k); buf = buf.slice(k + 2);
+        if (!chunk.startsWith("data: ")) continue;
+        const e = JSON.parse(chunk.slice(6));
+        if (e.type === "done") { sessionId = e.session_id; finished = true; typing.remove(); bubble("bot", `<div class="md">${md(e.answer)}</div>`, "StudyMate"); }
+        else if (e.type === "error") { finished = true; typing.remove(); bubble("err", "⚠ " + esc(e.detail)); }
+        else addEvent(e);
+      }
+    }
+    if (!finished) throw new Error("Connection closed before the agents finished.");
+  } catch (err) { typing.remove(); bubble("err", "⚠ " + esc(err.message)); }
+  finally { setBusy(false); input.focus(); }
+}
+
+/* ---- notes panel (reads the notes saved by the Study Coach through the API) ---- */
+const modal = $("modal"), noteList = $("noteList"), noteView = $("noteView");
+async function openNotes() {
+  modal.classList.add("open"); noteList.innerHTML = ""; noteView.innerHTML = '<span style="color:var(--dim)">Select a note to read it.</span>';
+  try {
+    const { notes } = await (await fetch("/notes")).json();
+    if (!notes.length) { noteList.innerHTML = '<li style="cursor:default">No notes yet</li>'; return; }
+    notes.forEach(n => {
+      const li = document.createElement("li"); li.textContent = n; li.dataset.name = n;
+      li.addEventListener("click", async () => {
+        noteList.querySelectorAll("li").forEach(x => x.classList.toggle("on", x === li));
+        const r = await fetch("/notes/" + encodeURIComponent(n));
+        noteView.innerHTML = r.ok ? md((await r.json()).content) : "Could not load this note.";
+      });
+      noteList.append(li);
+    });
+  } catch (e) { noteList.innerHTML = '<li style="cursor:default">Could not load notes</li>'; }
+}
+$("notesBtn").addEventListener("click", openNotes);
+$("closeModal").addEventListener("click", () => modal.classList.remove("open"));
+modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("open"); });
+addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.remove("open"); });
+
+form.addEventListener("submit", ev => { ev.preventDefault(); const m = input.value.trim(); if (!m || send.disabled) return; input.value = ""; ask(m); });
+document.querySelectorAll(".sugg").forEach(b => b.addEventListener("click", () => { input.value = b.dataset.p; input.focus(); }));
+</script>
+</body>
+</html>
